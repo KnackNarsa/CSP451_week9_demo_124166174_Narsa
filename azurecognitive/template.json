@@ -1,0 +1,44 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "accounts_nnarsa_presentation_name": {
+            "defaultValue": "nnarsa-presentation",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2025-06-01",
+            "name": "[parameters('accounts_nnarsa_presentation_name')]",
+            "location": "canadaeast",
+            "tags": {
+                "DeploymentId": "1886175",
+                "LaunchId": "55730",
+                "LaunchType": "ON_DEMAND_LAB",
+                "TemplateId": "7633",
+                "TenantId": "353"
+            },
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "TextAnalytics",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "apiProperties": {},
+                "customSubDomainName": "[parameters('accounts_nnarsa_presentation_name')]",
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "virtualNetworkRules": [],
+                    "ipRules": []
+                },
+                "allowProjectManagement": false,
+                "publicNetworkAccess": "Enabled"
+            }
+        }
+    ]
+}

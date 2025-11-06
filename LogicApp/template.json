@@ -1,0 +1,206 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_sentientassignment_name": {
+            "defaultValue": "sentientassignment",
+            "type": "String"
+        },
+        "connections_documentdb_externalid": {
+            "defaultValue": "/subscriptions/71d310bf-1718-4d11-87d1-99a7d4e2053f/resourceGroups/Student-RG-1886175/providers/Microsoft.Web/connections/documentdb",
+            "type": "String"
+        },
+        "connections_powerbi_externalid": {
+            "defaultValue": "/subscriptions/71d310bf-1718-4d11-87d1-99a7d4e2053f/resourceGroups/Student-RG-1886175/providers/Microsoft.Web/connections/powerbi",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('workflows_sentientassignment_name')]",
+            "location": "canadaeast",
+            "tags": {
+                "DeploymentId": "1886175",
+                "LaunchId": "55730",
+                "LaunchType": "ON_DEMAND_LAB",
+                "TemplateId": "7633",
+                "TenantId": "353"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_HTTP_request_is_received": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "schema": {
+                                    "text": "Sample",
+                                    "source": "review",
+                                    "userId": "demo-user",
+                                    "language": "en"
+                                }
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Sentiment": {
+                            "runAfter": {},
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "https://nnarsa-presentation.cognitiveservices.azure.com/text/analytics/v3.1/sentiment",
+                                "method": "POST",
+                                "headers": {
+                                    "Ocp-Apim-Subscription-Key": "7DmCKuUcaitAsMxxmB3HgLwbgUxS0c4AmpDmbMsFFRyVGrRWx3blJQQJ99BKACREanaXJ3w3AAAaACOGChr2",
+                                    "Content-Type": "application/json"
+                                },
+                                "body": {
+                                    "documents": [
+                                        {
+                                            "id": "1",
+                                            "language": "@{triggerBody()?['language']}",
+                                            "text": "@{triggerBody()?['text']}"
+                                        }
+                                    ]
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "KeyPhrases": {
+                            "runAfter": {
+                                "Sentiment": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "https://nnarsa-presentation.cognitiveservices.azure.com/text/analytics/v3.1/keyPhrases",
+                                "method": "POST",
+                                "headers": {
+                                    "Ocp-Apim-Subscription-Key": "7DmCKuUcaitAsMxxmB3HgLwbgUxS0c4AmpDmbMsFFRyVGrRWx3blJQQJ99BKACREanaXJ3w3AAAaACOGChr2",
+                                    "Content-Type": "application/json"
+                                },
+                                "body": {
+                                    "documents": [
+                                        {
+                                            "id": "1",
+                                            "language": "@{triggerBody()?['language']}",
+                                            "text": "@{triggerBody()?['text']}"
+                                        }
+                                    ]
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "Compose": {
+                            "runAfter": {
+                                "KeyPhrases": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose",
+                            "inputs": {
+                                "id": "@{guid()}",
+                                "userId": "@{coalesce(triggerBody()?['userId'],'demo-user')}",
+                                "source": "@{coalesce(triggerBody()?['source'],'review')}",
+                                "createdAt": "@{utcNow()}",
+                                "language": "@{coalesce(triggerBody()?['language'],'en')}",
+                                "text": "@{triggerBody()?['text']}",
+                                "sentiment": "@{body('Sentiment')?['documents']?[0]?['sentiment']\n}",
+                                "confidenceScores": "@body('Sentiment')?['documents']?[0]?['confidenceScores']",
+                                "keyPhrases": "@{body('KeyPhrases')?['documents']?[0]?['keyPhrases']\n\n\n}"
+                            }
+                        },
+                        "Create_or_update_document_(V3)": {
+                            "runAfter": {
+                                "Compose": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['documentdb']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "body": "@outputs('Compose')",
+                                "path": "/v2/cosmosdb/@{encodeURIComponent('AccountNameFromSettings')}/dbs/@{encodeURIComponent('sentimentdb')}/colls/@{encodeURIComponent('results')}/docs"
+                            }
+                        },
+                        "Response": {
+                            "runAfter": {
+                                "Refresh_a_dataset": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response",
+                            "kind": "Http",
+                            "inputs": {
+                                "statusCode": 200,
+                                "body": "@outputs('Compose')"
+                            }
+                        },
+                        "Refresh_a_dataset": {
+                            "runAfter": {
+                                "Create_or_update_document_(V3)": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['powerbi']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v1.0/myorg/groups/@{encodeURIComponent('myworkspace')}/datasets/@{encodeURIComponent('7fc57dcb-0d5e-4b95-b177-d3392c8424f3')}/refreshes",
+                                "queries": {
+                                    "pbi_source": "powerAutomate"
+                                }
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "documentdb": {
+                                "id": "/subscriptions/71d310bf-1718-4d11-87d1-99a7d4e2053f/providers/Microsoft.Web/locations/canadaeast/managedApis/documentdb",
+                                "connectionId": "[parameters('connections_documentdb_externalid')]",
+                                "connectionName": "documentdb"
+                            },
+                            "powerbi": {
+                                "id": "/subscriptions/71d310bf-1718-4d11-87d1-99a7d4e2053f/providers/Microsoft.Web/locations/canadaeast/managedApis/powerbi",
+                                "connectionId": "[parameters('connections_powerbi_externalid')]",
+                                "connectionName": "powerbi"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
