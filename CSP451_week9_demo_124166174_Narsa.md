@@ -11,7 +11,7 @@
 
 ## Overview
 
-This proof of conept demonstrates how text is interpreted with Azure Cognitive Services Text Analytics to determine positive, negative, and neutral feelings to be stored in a database to be presented in Power BI via an Sentiment Analysis Dashboard
+This proof of concept demonstrates how text is interpreted with Azure Cognitive Services Text Analytics to determine positive, negative, and neutral feelings to be stored in a database to be presented in Power BI via a Sentiment Analysis Dashboard
 
 - **Azure Cognitive Services Text Analytics** - Interprets text by calling the keyphrases and sentiment api
 - **CosmosDB** - Stores keyphrases and sentiment data to be used in Power BI
@@ -295,7 +295,7 @@ This proof of conept demonstrates how text is interpreted with Azure Cognitive S
 ```
 
 ## Logic App example run
-Showcases what the logic app does when it the http trigger occurs
+Showcases what the logic app does when the http trigger occurs.
 
 **Test Payload**
 
@@ -384,8 +384,8 @@ Showcases what the logic app does when it the http trigger occurs
 - ✅ Trigger activates
 - ✅ Sentiment and keyphrases API interpret text
 - ✅ Data is stored into CosmosDB
-- ✅ PowerBI is connected to database
-- ✅ PowerBI sees new entries into database
+- ✅ PowerBI is connected to the database
+- ✅ PowerBI sees new entries into the database
 - ⚠️ CosmosDB Throughput being 400 RU/s is the bare minimum computing power
 ---
 
